@@ -17,7 +17,7 @@ A modern web application that uses Google's Gemini AI to generate 5 different so
 
 ## UI Screenshots & Graphical Representation
 
-![Main Interface](Graphical_Representation.png)
+![Main Interface](Graphical_Representation.png.png)
 ![Demo View](Demo.png)
 
 ### Project Structure Visualization
