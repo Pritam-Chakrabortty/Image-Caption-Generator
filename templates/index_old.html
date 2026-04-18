@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Caption Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-800 mb-3">
+                <i class="fas fa-image text-blue-600 mr-3"></i>
+                Image Caption Generator
+            </h1>
+            <p class="text-gray-600 text-lg">Upload an image and let AI generate a descriptive caption</p>
+        </header>
+
+        <main class="max-w-4xl mx-auto">
+            <!-- Upload Section -->
+            <section class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                <div id="dropZone" class="drop-zone rounded-lg p-12 text-center cursor-pointer hover:bg-gray-50">
+                    <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Drop your image here</h3>
+                    <p class="text-gray-500 mb-4">or click to browse</p>
+                    <p class="text-sm text-gray-400">Supported formats: PNG, JPG, JPEG, GIF, BMP, TIFF, WebP</p>
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                </div>
+
+                <!-- Upload Progress -->
+                <div id="uploadProgress" class="hidden mt-6">
+                    <div class="flex items-center justify-center">
+                        <div class="loader mr-3"></div>
+                        <span class="text-gray-600">Processing image...</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="hidden bg-white rounded-xl shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <i class="fas fa-magic text-purple-600 mr-2"></i>
+                    Generated Caption
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Image Display -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">Uploaded Image</h3>
+                        <div class="rounded-lg overflow-hidden shadow-md">
+                            <img id="uploadedImage" src="" alt="Uploaded image" class="w-full h-auto">
+                        </div>
+                    </div>
+                    
+                    <!-- Caption Display -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">5 Social Media Captions</h3>
+                        <div id="captionsContainer" class="space-y-3">
+                            <!-- Captions will be dynamically added here -->
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="mt-6 flex gap-3">
+                            <button id="newImageBtn" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>New Image
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mt-6">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+                    <p id="errorText" class="text-red-800"></p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-center mt-12 text-gray-600">
+            <p>Powered by AI image recognition technology</p>
+        </footer>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const resultsSection = document.getElementById('resultsSection');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const captionsContainer = document.getElementById('captionsContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const newImageBtn = document.getElementById('newImageBtn');
+
+        // Event Listeners
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function displayCaptions(captionsText) {
+            const captions = captionsText.split('\n').filter(line => line.trim());
+            captionsContainer.innerHTML = '';
+            
+            // Caption types for styling
+            const captionTypes = ['Poetic', 'Funny', 'Inspirational', 'Descriptive', 'Trendy'];
+            const colors = [
+                'from-pink-50 to-purple-50',
+                'from-yellow-50 to-orange-50', 
+                'from-blue-50 to-cyan-50',
+                'from-green-50 to-emerald-50',
+                'from-indigo-50 to-purple-50'
+            ];
+            
+            captions.forEach((caption, index) => {
+                // Extract caption text (remove numbering)
+                const captionText = caption.replace(/^\d+\.\s*/, '').trim();
+                if (captionText && index < 5) {
+                    const captionBox = document.createElement('div');
+                    captionBox.className = `bg-gradient-to-r ${colors[index]} rounded-lg p-6 shadow-md border border-gray-200`;
+                    captionBox.innerHTML = `
+                        <div class="mb-3">
+                            <span class="inline-block px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r ${colors[index].replace('50', '500')} rounded-full">
+                                ${captionTypes[index]}
+                            </span>
+                        </div>
+                        <p class="text-gray-800 text-base leading-relaxed mb-4 min-h-[3rem]">${captionText}</p>
+                        <button class="copy-btn w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium" data-caption="${captionText}">
+                            <i class="fas fa-copy mr-2"></i>Copy This Caption
+                        </button>
+                    `;
+                    captionsContainer.appendChild(captionBox);
+                }
+            });
+            
+            // Add copy functionality to all buttons
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const caption = this.getAttribute('data-caption');
+                    navigator.clipboard.writeText(caption).then(() => {
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+                        this.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                        this.classList.add('bg-green-600', 'hover:bg-green-700');
+                        
+                        setTimeout(() => {
+                            this.innerHTML = originalText;
+                            this.classList.remove('bg-green-600', 'hover:bg-green-700');
+                            this.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        }, 2000);
+                    });
+                });
+            });
+        }
+
+        newImageBtn.addEventListener('click', () => {
+            resetForm();
+        });
+
+        function handleFile(file) {
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp', 'image/tiff', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                showError('Please upload a valid image file.');
+                return;
+            }
+
+            // Validate file size (16MB max)
+            if (file.size > 16 * 1024 * 1024) {
+                showError('File size must be less than 16MB.');
+                return;
+            }
+
+            uploadImage(file);
+        }
+
+        function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            hideError();
+            showProgress();
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideProgress();
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || 'Failed to process image.');
+                }
+            })
+            .catch(error => {
+                hideProgress();
+                showError('Network error. Please try again.');
+                console.error('Upload error:', error);
+            });
+        }
+
+        function displayResults(data) {
+            uploadedImage.src = data.image_url;
+            displayCaptions(data.caption);
+            resultsSection.classList.remove('hidden');
+            dropZone.parentElement.classList.add('hidden');
+        }
+
+        function resetForm() {
+            resultsSection.classList.add('hidden');
+            dropZone.parentElement.classList.remove('hidden');
+            fileInput.value = '';
+            hideError();
+        }
+
+        function showProgress() {
+            uploadProgress.classList.remove('hidden');
+            dropZone.classList.add('hidden');
+        }
+
+        function hideProgress() {
+            uploadProgress.classList.add('hidden');
+            dropZone.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
